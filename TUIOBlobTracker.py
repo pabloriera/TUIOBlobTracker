@@ -1,12 +1,13 @@
 import tuio
-import liblo, sys
+import liblo
+import sys
 from math import hypot
 
-def check_list_miss(listBIG,listSMALL):
+def check_list_miss(prev_list,new_list):
 	ans = []
 
-	for k in listBIG:
-		if not(listSMALL.count(k)):
+	for k in prev_list:
+		if not(new_list.count(k)):
 			ans.append(k)
 
 	return ans	
@@ -29,7 +30,7 @@ def check_list_idem(list1,list2):
 
 	return ans
 
-def cerca_de_pared(x,y,th):
+def near_wall(x,y,th):
 	return x < th or (1 - x) < th or y < th or (1 - y) < th
 
 class Blob:
@@ -37,10 +38,9 @@ class Blob:
 		self.xpos = 0
 		self.ypos = 0
 		self.state = False
-		self.idle = False
-		self.friend = 0
-
-# ARRANCA SCRIPT
+		self.id = 0
+		
+# START SCRIPT
 try:
 	target = liblo.Address('10.42.0.46',12345)
 	print "Connected"
@@ -49,25 +49,31 @@ except liblo.AddressError, err:
 	print str(err)
 	sys.exit()
 
-# MANDA INIT
+# SEND INIT
 liblo.send(target, "/init")
 
-# ARRANCA A RECIVIR TUIO
+# STARTS TUIO
 tracking = tuio.Tracking()
 print "loaded profiles:", tracking.profiles.keys()
 print "list functions to access tracked objects:", tracking.get_helpers()
 
+
+#~ NUMBER OF BLOBS
 N = 5
+
+#~ THERSHOLDS FOR GETTING OUT AND COLISSION
 out_th = 0.03
 col_th = 0.05
 
+
+#~ BLOB LIST
 b = []
 
 for i in range(0,N):
 	b.append(Blob())
 
-b_id= {}
-
+id2b = {}
+b2id = {}
 
 idlistOLD = []
 
@@ -81,94 +87,101 @@ try:
 		idlist = []
 		pos_id = {}
 		
+		
+		#~ FILL IDLIST WITH LAST UPDATES
 		for cur in tracking.cursors():
 						
 			idlist.append(cur.sessionid)
 			pos_id[cur.sessionid] = (cur.xpos,cur.ypos)
-			
 
 		idlist.sort()
 
-		#~ TODO IGUAL
-		if idlist == idlistOLD and idlist != []:
+		#~ IF NOT EMPTY LIST
+		if idlist != []:
+
+			#~ CHANGES BETWEEN OLD AND NEW
+			if idlist != idlistOLD:
+
+				#~ ASK MISSING ID'S
+				idlistMISS = check_list_miss(idlistOLD,idlist)
+				
+				for l in idlistMISS:
+
+					c = id2b[l]
+			
+					#~ IT'S GETTING OUT
+					if near_wall(b[c].xpos,b[c].ypos,out_th):
+					
+						b[c].state = False
+						id2b.pop(l)
+						liblo.send(target, "/blob"+str(c+1)+ "/state", 0) # SEND BLOB OFF
+								
+					#~ HAS MERGE WITH OTHERS?
+					else:
+						
+						#~ SERCH WICH ID REMAINS AND ATE THE MISSING
+						for cc in range(N):
+							
+							if b[c].state and idlist.count(b2id[cc]):
+								
+									dist = hypot( b[c].xpos - b[cc].xpos , b[c].ypos - b[cc].ypos )
+									
+									if dist < col_th:
+									
+										b2id = b[2id
+
+
+				#~ NEW IDs
+				
+				idlistNEW = check_list_new(idlistOLD,idlist)
+				
+				for l in idlistNEW:
+					
+					#~ CAME FROM OUTSIDE
+					if near_wall(pos_id[l][0],pos_id[l][1],out_th)
+
+						for c in range(N):
+						
+							if not(b[c].state):
+								
+								id2b[l] = c
+								b2id[c] = l
+								
+								b[c].state = True
+								b[c].id = l
+								
+								liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
+								
+								b[c].xpos = pos_id[l][0]
+								b[c].ypos = pos_id[l][1]
+								
+								liblo.send(target, "/blob"+str(c+1), b[c].xpos,b[c].ypos)
+								break
+								
+							
+						#~ BLOB DIVISION
+					elif
+						
+						for c in range(N):
+							dist = hypot( b[c].xpos - pos_id[l][0] , b[c].ypos - pos_id[l][1] )
+						
+							if dist < col_th and not(idlistNEW.count(b2id[c])):
+						
+								id2b[l] = c
+								b2id[c] = l
+								b[c].id = l
+								
+								b[c].xpos = pos_id[l][0]
+								b[c].ypos = pos_id[l][1]
+								liblo.send(target, "/blob"+str(c+1), b[c].xpos,b[c].ypos)
+								break
+
 
 			for l in idlist:
-				c = b_id[l]
+				c = id2b[l]
 				b[c].xpos = pos_id[l][0]
 				b[c].ypos = pos_id[l][1]
 				liblo.send(target, "/blob" + str(c+1), b[c].xpos,b[c].ypos)
-			
-		#~ CAMBIOS (SE VA ALGUIEN O COLISION)
-		elif idlist != idlistOLD:
-
-			idlistMISS = check_list_miss(idlistOLD,idlist)
-			
-			for l in idlistMISS:
-				
-				c = b_id[l]
-				b[c].idle = True
-
-			for l in idlistMISS:
-
-				c = b_id[l]
-		
-				#~ SE VA ALGUIEN
-				if cerca_de_pared(b[c].xpos,b[c].ypos,out_th):
-				
-					b[c].state = False
-					b[c].idle = False
-					b_id.pop(l)
-					liblo.send(target, "/blob"+str(c+1)+ "/state", 0) # SEND BLOB OFF
-							
-				#~ COLISION
-				else:
-					
-					#~ BUSCAR FRIEND
-					for cc in range(N):
-						
-						if b[c].state and not(b[c].idle):
-							
-							if cc != c:
-								dist = hypot( b[c].xpos - b[cc].xpos , b[c].ypos - b[cc].ypos )
-								
-								if dist < col_th:
-								
-									b[c].friend = cc
-
-
-			#~ ENTRA ALGUIEN
-			
-			idlistNEW = check_list_new(idlistOLD,idlist)
-			
-			for l in idlistNEW:
-
-				for c in range(N):
-					
-					#~ POR LOS BORDES
-					if not(b[c].state):
-						b_id[l] = c
-						
-						b[c].state = True
-						b[c].idle = False
-						
-						liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
-						
-						b[c].xpos = pos_id[l][0]
-						b[c].ypos = pos_id[l][1]
-						liblo.send(target, "/blob"+str(c+1), b[c].xpos,b[c].ypos)
-						break
-						
-						
-					#~ DESDE ADENTRO
-					elif b[c].idle:
-						
-						b_id[l] = c
-						
-						b[c].idle = False
-												
-						b[c].xpos = pos_id[l][0]
-						b[c].ypos = pos_id[l][1]
-						liblo.send(target, "/blob"+str(c+1), b[c].xpos,b[c].ypos)
 
 
 		idlistOLD = idlist		
