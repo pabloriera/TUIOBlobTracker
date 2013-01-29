@@ -38,7 +38,6 @@ class Blob:
 		self.xpos = 0
 		self.ypos = 0
 		self.state = False
-		self.id = 0
 		
 # START SCRIPT
 try:
@@ -62,18 +61,19 @@ print "list functions to access tracked objects:", tracking.get_helpers()
 N = 5
 
 #~ THERSHOLDS FOR GETTING OUT AND COLISSION
-out_th = 0.03
+out_th = 0.05
 col_th = 0.05
+
+id2b = {}
+b2id = {}
 
 
 #~ BLOB LIST
 b = []
 
-for i in range(0,N):
+for c in range(0,N):
 	b.append(Blob())
-
-id2b = {}
-b2id = {}
+	b2id[c]=0
 
 idlistOLD = []
 
@@ -97,11 +97,11 @@ try:
 		idlist.sort()
 
 		#~ IF NOT EMPTY LIST
-		if idlist != []:
+		if idlist!=[] or idlistOLD:
 
 			#~ CHANGES BETWEEN OLD AND NEW
 			if idlist != idlistOLD:
-
+				print "CHANGE"
 				#~ ASK MISSING ID'S
 				idlistMISS = check_list_miss(idlistOLD,idlist)
 				
@@ -114,6 +114,7 @@ try:
 					
 						b[c].state = False
 						id2b.pop(l)
+						b2id[c] = 0
 						liblo.send(target, "/blob"+str(c+1)+ "/state", 0) # SEND BLOB OFF
 								
 					#~ HAS MERGE WITH OTHERS?
@@ -122,13 +123,14 @@ try:
 						#~ SERCH WICH ID REMAINS AND ATE THE MISSING
 						for cc in range(N):
 							
-							if b[c].state and idlist.count(b2id[cc]):
+							if b[c].state:# and idlist.count(b2id[cc]):
 								
 									dist = hypot( b[c].xpos - b[cc].xpos , b[c].ypos - b[cc].ypos )
 									
 									if dist < col_th:
 									
-										b2id = b[2id
+										b2id[c] = b2id[cc]
+										print "SI"
 
 
 				#~ NEW IDs
@@ -138,7 +140,7 @@ try:
 				for l in idlistNEW:
 					
 					#~ CAME FROM OUTSIDE
-					if near_wall(pos_id[l][0],pos_id[l][1],out_th)
+					if near_wall(pos_id[l][0],pos_id[l][1],out_th):
 
 						for c in range(N):
 						
@@ -148,40 +150,51 @@ try:
 								b2id[c] = l
 								
 								b[c].state = True
-								b[c].id = l
 								
 								liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
-								
-								b[c].xpos = pos_id[l][0]
-								b[c].ypos = pos_id[l][1]
-								
-								liblo.send(target, "/blob"+str(c+1), b[c].xpos,b[c].ypos)
 								break
-								
-							
-						#~ BLOB DIVISION
-					elif
+					
+					#~ CAME FROM INSIDE
+					else:
 						
+						blobdiv = False
+						
+						
+						#~ BLOBDIV
 						for c in range(N):
+						
 							dist = hypot( b[c].xpos - pos_id[l][0] , b[c].ypos - pos_id[l][1] )
-						
+												
 							if dist < col_th and not(idlistNEW.count(b2id[c])):
-						
+								
 								id2b[l] = c
 								b2id[c] = l
-								b[c].id = l
+								blobdiv = True
 								
-								b[c].xpos = pos_id[l][0]
-								b[c].ypos = pos_id[l][1]
-								liblo.send(target, "/blob"+str(c+1), b[c].xpos,b[c].ypos)
 								break
+						
+						#~ MAGIC
+						if not(blobdiv):
+						
+							for c in range(N):
+							
+								if not(b[c].state):
+									
+									id2b[l] = c
+									b2id[c] = l
+									
+									b[c].state = True
+									
+									liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
+									break
 
 
-			for l in idlist:
-				c = id2b[l]
-				b[c].xpos = pos_id[l][0]
-				b[c].ypos = pos_id[l][1]
-				liblo.send(target, "/blob" + str(c+1), b[c].xpos,b[c].ypos)
+			for c in range(N):
+				if b[c].state:
+					l = b2id[c]
+					b[c].xpos = pos_id[l][0]
+					b[c].ypos = pos_id[l][1]
+					liblo.send(target, "/blob" + str(c+1), b[c].xpos,b[c].ypos)
 
 
 		idlistOLD = idlist		
