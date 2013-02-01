@@ -32,6 +32,23 @@ def check_list_idem(list1,list2):
 
 def near_wall(x,y,th):
 	return x < th or (1 - x) < th or y < th or (1 - y) < th
+	
+	
+def near_blob(b,x,y,th):
+	
+	ans = []
+	
+	for cc in range(len(b)):
+	
+		if b[cc].state:
+		
+			dist = hypot(x - b[cc].xpos , y - b[cc].ypos )
+			
+			if dist < th:
+				
+				ans.append(cc)
+	return ans	
+										
 
 class Blob:
 	def __init__(self):
@@ -41,7 +58,8 @@ class Blob:
 		
 # START SCRIPT
 try:
-	target = liblo.Address('10.42.0.46',12345)
+	#~ target = liblo.Address('10.42.0.46',12345)
+	target = liblo.Address('192.168.0.100',12345)
 	print "Connected"
 
 except liblo.AddressError, err:
@@ -102,6 +120,7 @@ try:
 			#~ CHANGES BETWEEN OLD AND NEW
 			if idlist != idlistOLD:
 				print "CHANGE"
+				
 				#~ ASK MISSING ID'S
 				idlistMISS = check_list_miss(idlistOLD,idlist)
 				
@@ -110,38 +129,55 @@ try:
 					c = id2b[l]
 			
 					#~ IT'S GETTING OUT
-					if near_wall(b[c].xpos,b[c].ypos,out_th):
+					near_wall_flag = near_wall(b[c].xpos,b[c].ypos,out_th)
 					
+					#~ HAS MERGE WITH OTHERS?
+					near_blob_list = near_blob(b,b[c].xpos,b[c].ypos,col_th)
+			
+					
+					if len(near_blob_list)>1 and not(near_wall_flag):
+						#~ print "MERGE",near_blob_list
+						#~ SEARCH WICH ID REMAINS AND ATE THE MISSING
+						
+						for cc in near_blob_list:
+							if idlist.count(b2id[cc]) and c!=cc:
+									b2id[c] = b2id[cc]
+					
+					
+					else:	#~ DISAPPEARED				
+						#~ print "FUE"
+						#~ near_wall_flag:
 						b[c].state = False
 						id2b.pop(l)
 						b2id[c] = 0
 						liblo.send(target, "/blob"+str(c+1)+ "/state", 0) # SEND BLOB OFF
-								
-					#~ HAS MERGE WITH OTHERS?
-					else:
-						
-						#~ SERCH WICH ID REMAINS AND ATE THE MISSING
-						for cc in range(N):
-							
-							if b[c].state:# and idlist.count(b2id[cc]):
-								
-									dist = hypot( b[c].xpos - b[cc].xpos , b[c].ypos - b[cc].ypos )
-									
-									if dist < col_th:
-									
-										b2id[c] = b2id[cc]
-										print "SI"
-
-
+				
+				
 				#~ NEW IDs
 				
 				idlistNEW = check_list_new(idlistOLD,idlist)
 				
 				for l in idlistNEW:
 					
-					#~ CAME FROM OUTSIDE
-					if near_wall(pos_id[l][0],pos_id[l][1],out_th):
-
+					near_wall_flag = near_wall(pos_id[l][0],pos_id[l][1],out_th)
+					
+					near_blob_list = near_blob(b,pos_id[l][0], pos_id[l][1],col_th)
+					
+					#~ BLOBDIV
+					if len(near_blob_list)>1 and not(near_wall_flag):
+						
+						for c in near_blob_list:
+							
+							if not(idlistNEW.count(b2id[c])):
+								
+								id2b[l] = c
+								b2id[c] = l
+								
+								break
+								
+					
+					else: #~ CAME FROM OUTSIDE
+						
 						for c in range(N):
 						
 							if not(b[c].state):
@@ -154,47 +190,13 @@ try:
 								liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
 								break
 					
-					#~ CAME FROM INSIDE
-					else:
-						
-						blobdiv = False
-						
-						
-						#~ BLOBDIV
-						for c in range(N):
-						
-							dist = hypot( b[c].xpos - pos_id[l][0] , b[c].ypos - pos_id[l][1] )
-												
-							if dist < col_th and not(idlistNEW.count(b2id[c])):
-								
-								id2b[l] = c
-								b2id[c] = l
-								blobdiv = True
-								
-								break
-						
-						#~ MAGIC
-						if not(blobdiv):
-						
-							for c in range(N):
-							
-								if not(b[c].state):
-									
-									id2b[l] = c
-									b2id[c] = l
-									
-									b[c].state = True
-									
-									liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
-									break
-
 
 			for c in range(N):
 				if b[c].state:
 					l = b2id[c]
 					b[c].xpos = pos_id[l][0]
 					b[c].ypos = pos_id[l][1]
-					liblo.send(target, "/blob" + str(c+1), b[c].xpos,b[c].ypos)
+					liblo.send(target, "/blob" + str(c+1) + "/pos", b[c].xpos,b[c].ypos)
 
 
 		idlistOLD = idlist		
