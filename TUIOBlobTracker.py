@@ -21,12 +21,12 @@ def check_list_new(prev_list,new_list):
 
 	return ans
 	
-def check_list_idem(list1,list2):
-	ans = []
-
-	for k in list1:
-		if list2.count(k):
-			ans.append(k)
+#~ def check_list_idem(list1,list2):
+	#~ ans = []
+#~ 
+	#~ for k in list1:
+		#~ if list2.count(k):
+			#~ ans.append(k)
 
 	return ans
 
@@ -34,15 +34,15 @@ def near_wall(x,y,th):
 	return x < th or (1 - x) < th or y < th or (1 - y) < th
 	
 	
-def near_blob(b,x,y,th):
+def near_blob(blobs,x,y,th):
 	
 	ans = []
 	
-	for cc in range(len(b)):
+	for cc in range(len(blobs)):
 	
-		if b[cc].state:
+		if blobs[cc].state:
 		
-			dist = hypot(x - b[cc].xpos , y - b[cc].ypos )
+			dist = hypot(x - blobs[cc].xpos , y - blobs[cc].ypos )
 			
 			if dist < th:
 				
@@ -75,8 +75,6 @@ print "loaded profiles:", tracking.profiles.keys()
 print "list functions to access tracked objects:", tracking.get_helpers()
 
 
-#~ NUMBER OF BLOBS
-N = 5
 
 #~ THERSHOLDS FOR GETTING OUT AND COLISSION
 out_th = 0.05
@@ -85,12 +83,14 @@ col_th = 0.05
 id2b = {}
 b2id = {}
 
-
 #~ BLOB LIST
-b = []
+blobs = []
+
+#~ NUMBER OF BLOBS
+N = 5
 
 for c in range(0,N):
-	b.append(Blob())
+	blobs.append(Blob())
 	b2id[c]=0
 
 idlistOLD = []
@@ -119,7 +119,7 @@ try:
 
 			#~ CHANGES BETWEEN OLD AND NEW
 			if idlist != idlistOLD:
-				print "CHANGE"
+				#~ print "CHANGE"
 				
 				#~ ASK MISSING ID'S
 				idlistMISS = check_list_miss(idlistOLD,idlist)
@@ -129,10 +129,10 @@ try:
 					c = id2b[l]
 			
 					#~ IT'S GETTING OUT
-					near_wall_flag = near_wall(b[c].xpos,b[c].ypos,out_th)
+					near_wall_flag = near_wall(blobs[c].xpos,blobs[c].ypos,out_th)
 					
 					#~ HAS MERGE WITH OTHERS?
-					near_blob_list = near_blob(b,b[c].xpos,b[c].ypos,col_th)
+					near_blob_list = near_blob(b,blobs[c].xpos,blobs[c].ypos,col_th)
 			
 					
 					if len(near_blob_list)>1 and not(near_wall_flag):
@@ -145,9 +145,8 @@ try:
 					
 					
 					else:	#~ DISAPPEARED				
-						#~ print "FUE"
-						#~ near_wall_flag:
-						b[c].state = False
+						#~ print "GO"
+						blobs[c].state = False
 						id2b.pop(l)
 						b2id[c] = 0
 						liblo.send(target, "/blob"+str(c+1)+ "/state", 0) # SEND BLOB OFF
@@ -163,7 +162,7 @@ try:
 					
 					near_blob_list = near_blob(b,pos_id[l][0], pos_id[l][1],col_th)
 					
-					#~ BLOBDIV
+					#~ BLOB DIV
 					if len(near_blob_list)>1 and not(near_wall_flag):
 						
 						for c in near_blob_list:
@@ -180,23 +179,23 @@ try:
 						
 						for c in range(N):
 						
-							if not(b[c].state):
+							if not(blobs[c].state):
 								
 								id2b[l] = c
 								b2id[c] = l
 								
-								b[c].state = True
+								blobs[c].state = True
 								
 								liblo.send(target, "/blob"+str(c+1)+ "/state", 1) # SEND BLOB ON
 								break
 					
 
 			for c in range(N):
-				if b[c].state:
+				if blobs[c].state:
 					l = b2id[c]
-					b[c].xpos = pos_id[l][0]
-					b[c].ypos = pos_id[l][1]
-					liblo.send(target, "/blob" + str(c+1) + "/pos", b[c].xpos,b[c].ypos)
+					blobs[c].xpos = pos_id[l][0]
+					blobs[c].ypos = pos_id[l][1]
+					liblo.send(target, "/blob" + str(c+1) + "/pos", blobs[c].xpos,blobs[c].ypos)
 
 
 		idlistOLD = idlist		
@@ -207,8 +206,8 @@ try:
 			s2 = '\r'
 			
 			for c in range(N):
-				if b[c].state:
-					s2 = s2  + "#" + str(c+1) + " " + "%.2f" % b[c].xpos + " " + "%.2f" % b[c].ypos + "\t"
+				if blobs[c].state:
+					s2 = s2  + "#" + str(c+1) + " " + "%.2f" % blobs[c].xpos + " " + "%.2f" % blobs[c].ypos + "\t"
 				else:
 					s2 = s2  + "#" + str(c+1) + " " + "OFF" + "\t\t"
 
