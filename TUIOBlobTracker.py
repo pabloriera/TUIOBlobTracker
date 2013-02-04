@@ -72,8 +72,8 @@ def main():
 
 	# STARTS TUIO
 	tracking = tuio.Tracking()
-	print "loaded profiles:", tracking.profiles.keys()
-	print "list functions to access tracked objects:", tracking.get_helpers()
+	#print "loaded profiles:", tracking.profiles.keys()
+	#print "list functions to access tracked objects:", tracking.get_helpers()
 
 
 
@@ -88,7 +88,7 @@ def main():
 	blobs = []
 
 	#~ NUMBER OF BLOBS
-	N = 5
+	N = 30
 
 	for c in range(0,N):
 		blobs.append(Blob())
@@ -194,10 +194,14 @@ def main():
 				for c in range(N):
 					if blobs[c].state:
 						l = b2id[c]
-						blobs[c].xpos = pos_id[l][0]
-						blobs[c].ypos = pos_id[l][1]
-						liblo.send(target, "/blob" + str(c+1) + "/pos", blobs[c].xpos,blobs[c].ypos)  # SEND POSITION
-
+						if pos_id.keys().count(l):
+							blobs[c].xpos = pos_id[l][0]
+							blobs[c].ypos = pos_id[l][1]
+							liblo.send(target, "/blob" + str(c+1) + "/pos", blobs[c].xpos,blobs[c].ypos)  # SEND POSITION
+						else:
+							blobs[c].state = True
+							
+							
 
 			idlistOLD = idlist		
 
@@ -223,6 +227,7 @@ def main():
 		tracking.stop()
 	except:
 		tracking.stop()
+		print "Error inesperado:", sys.exc_info()[0]
 		main()
 	
 		
