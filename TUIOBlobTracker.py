@@ -59,8 +59,8 @@ def main():
 			
 	# START SCRIPT
 	try:
-		#~ target = liblo.Address('10.42.0.46',12345)
-		target = liblo.Address('192.168.0.100',12345)
+		target = liblo.Address('10.42.0.46',12345)
+		#~ target = liblo.Address('192.168.0.100',12345)
 		print "Connected"
 
 	except liblo.AddressError, err:
@@ -79,7 +79,7 @@ def main():
 
 	#~ THERSHOLDS FOR GETTING OUT AND COLISSION
 	out_th = 0.05
-	col_th = 0.05
+	col_th = 0.2
 
 	id2b = {}
 	b2id = {}
@@ -96,7 +96,7 @@ def main():
 
 	idlistOLD = []
 
-	printFlag = True
+	printFlag = False
 
 	try:
 		while 1:
@@ -135,7 +135,7 @@ def main():
 						near_blob_list = near_blob(blobs,blobs[c].xpos,blobs[c].ypos,col_th)
 				
 						if len(near_blob_list)>1 and not(near_wall_flag):
-
+							
 							#~ SEARCH WICH ID REMAINS AND MERGE THE MISSING
 							
 							for cc in near_blob_list:
