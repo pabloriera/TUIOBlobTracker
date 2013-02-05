@@ -199,7 +199,7 @@ def main():
 							blobs[c].ypos = pos_id[l][1]
 							liblo.send(target, "/blob" + str(c+1) + "/pos", blobs[c].xpos,blobs[c].ypos)  # SEND POSITION
 						else:
-							blobs[c].state = True
+							blobs[c].state = False
 							
 							
 
